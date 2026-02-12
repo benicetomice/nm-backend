@@ -17,7 +17,7 @@ public class MailTestController {
 
  @GetMapping("/test")
     public ResponseEntity<String> sendTestMail() {
-     mailService.sendMail(, "test", "test", "test");
+     mailService.sendMail("test@test.de", "test", "test@abc.de", "test");
      return ResponseEntity.ok("Test Mail gesendet");
  }
 
