@@ -1,5 +1,6 @@
-package de.nukingmoose.backend.service;
+package de.nukingmoose.backend.config;
 
+import de.nukingmoose.backend.service.JwtService;
 import io.jsonwebtoken.io.IOException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,6 +28,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException, java.io.IOException {
 
+        String path = request.getServletPath();
+
+        if (path.startsWith("/api/auth/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -34,23 +42,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = authHeader.substring(7);
+        try {
+            String token = authHeader.substring(7);
+            String username = jwtService.validateToken(token);
 
-        if (!Boolean.parseBoolean(jwtService.validateToken(token))) {
+            UsernamePasswordAuthenticationToken auth =
+                    new UsernamePasswordAuthenticationToken(
+                            username,
+                            null,
+                            List.of()
+                    );
+
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+        } catch (Exception e) {
+            SecurityContextHolder.clearContext();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
-
-        String username = jwtService.extractUsername(token);
-
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        username,
-                        null,
-                        List.of()
-                );
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
 
         filterChain.doFilter(request, response);
     }
